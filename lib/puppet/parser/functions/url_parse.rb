@@ -1,7 +1,5 @@
 require 'uri'
 
-return if Puppet::Parser::Functions::function(:url_parse)
-
 Puppet::Parser::Functions::newfunction(:url_parse, :type => :rvalue) do |args|
   @doc = "Returns information about an url
     
