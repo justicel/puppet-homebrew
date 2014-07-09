@@ -213,3 +213,10 @@ class homebrew (
   }
 
 }
+
+class cask {
+    include homebrew
+    package {'caskroom/cask': ensure => installed, provider => tap}
+    package {'brew-cask': ensure => installed, provider => brew}
+    Package['caskroom/cask'] -> Package['brew-cask']
+}
