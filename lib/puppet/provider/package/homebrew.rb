@@ -16,15 +16,20 @@ Puppet::Type.type(:package).provide(:brew, :parent => Puppet::Provider::Package)
   commands :sudo => "/usr/bin/sudo"
   commands :brew => "/usr/local/bin/brew"
 
-  def self.execute(cmd)
+  def self.execute(*cmd)
     owner = super([command(:stat), '-nf', '%Uu', command(:brew)]).to_i
     Puppet.debug "command owner is: #{owner}"
+    if cmd[-1].is_a? Hash and cmd[-1].has_key? :custom_environment
+        env = BREW_CUSTOM_ENVIRONMENT.merge(cmd.pop()[:custom_environment])
+    else
+        env = BREW_CUSTOM_ENVIRONMENT
+    end
     if super([command(:id), '-u']).to_i.zero?
       Puppet.debug "running command in sudo environment as current user is root"
-      super(cmd, :uid => owner, :failonfail => true, :combine => true, :custom_environment => BREW_CUSTOM_ENVIRONMENT)
+      super(cmd, :uid => owner, :failonfail => true, :combine => true, :custom_environment => env)
     else
       Puppet.debug "running command with current (non-root) user"
-      super(cmd, :failonfail => true, :combine => true, :custom_environment => BREW_CUSTOM_ENVIRONMENT)
+      super(cmd, :failonfail => true, :combine => true, :custom_environment => env)
     end
   end
 
@@ -44,8 +49,6 @@ Puppet::Type.type(:package).provide(:brew, :parent => Puppet::Provider::Package)
   def install
     Puppet.notice "Installing #{@resource[:name]}"
     should = @resource[:ensure]
-
-    Puppet.notice "Installing #{@resource[:name]}"
     package_name = @resource[:name]
     case should
     when true, false, Symbol
@@ -116,7 +119,9 @@ Puppet::Type.type(:package).provide(:brew, :parent => Puppet::Provider::Package)
   end
 
   def installed?
-    is_not_installed = execute([command(:brew), :info, @resource[:name]]).split("\n").grep(/^Not installed$/).first
+    is_not_installed = execute(
+        command(:brew), :info, @resource[:name]
+    ).split("\n").grep(/^Not installed$/).first
     is_not_installed.nil?
   end
 
