@@ -2,21 +2,21 @@
 #
 # Install HomeBrew  for Mac OS/X (http://brew.sh/) as a Puppet package provider
 #
-# Do not forget to download the command line tools for XCode from Apple and store them on a local repository.
+# Do not forget to download the command line tools for XCode from Apple
+# and store them on a local repository.
 # Caveat: You need an Apple ID to do that!
-#
-# For Mavericks:
-#  http://adcdownload.apple.com/Developer_Tools/command_line_tools_os_x_mavericks_for_xcode__late_october_2013/command_line_tools_os_x_mavericks_for_xcode__late_october_2013.dmg
-# For Mountain Lion:
-#  http://adcdownload.apple.com/Developer_Tools/command_line_tools_os_x_mountain_lion_for_xcode__april_2013/xcode462_cltools_10_86938259a.dmg
 #
 # === Parameters
 #
 # Document parameters here.
 #
 # [*xcode_cli_source*]
-#   Contains the URL where this module can find the XCode CLI package
-#   Default: 'http://puppet/command_line_tools_os_x_mavericks_for_xcode__late_october_2013.dmg'
+#   Contains the URL where this module can find the XCode CLI package.
+#   Default: undef
+#
+# [*xcode_cli_version*]
+#   Contains the version of the desired Xcode CLI package.
+#   Default: undef
 #
 # [*user*]
 #   Tells which user will own the Homebrew installation.
@@ -25,8 +25,28 @@
 #
 # [*group*]
 #   Tells which group will own the Homebrew installation.
-#   You should add users to this group later on if you want them to be allowed to install brews.
+#   You should add users to this group later on
+#   if you want them to be allowed to install brews.
 #   Defaults: brew
+#
+# [*update_every*]
+#   Tells how often a brew update should be run.
+#   if 'default', it will be run every day at 02:07, local time.
+#   if 'never', it will never run...
+#   otherwise, MM:HH:dd:mm:wd is expected. Where:
+#     - MM is the minute
+#     - HH is the hour
+#     - dd is the day of the month
+#     - mm is the month
+#     - wd is the week day
+#   See https://docs.puppetlabs.com/references/latest/type.html#cron and
+#   man crontab for a full explanation of time representations.
+#   Note we do not support multi-values at the moment ([2, 4], e.g.).
+#   Default: 'default'
+#
+# [*install_package*]
+#   Tells if packages should be installed by searching the hiera database.
+#   Default: true
 #
 # === Examples
 #
@@ -37,6 +57,12 @@
 #  class { 'homebrew':
 #    user  => gildas,
 #    group => brew,
+#  }
+#
+#  class { 'homebrew':
+#    user         => gildas,
+#    group        => brew,
+#    update_every => '01:*/6'
 #  }
 #
 # === Authors
@@ -71,7 +97,7 @@ class homebrew (
   if ($xcode_cli_source) {
     $xcode_cli_install = url_parse($xcode_cli_source, 'filename')
 
-    if ($has_compiler != 'true' or ($xcode_cli_version and $xcodeversion != $xcode_cli_version))
+    if ($::has_compiler != true or ($xcode_cli_version and $::xcodeversion != $xcode_cli_version))
     {
       package {$xcode_cli_install:
         ensure   => present,
@@ -82,32 +108,32 @@ class homebrew (
   }
 
   $homebrew_directories = [
-                   '/usr/local/bin',
-                   '/usr/local/etc',
-                   '/usr/local/include',
-                   '/usr/local/lib',
-                   '/usr/local/lib/pkgconfig',
-                   '/usr/local/Library',
-                   '/usr/local/sbin',
-                   '/usr/local/share',
-                   '/usr/local/var',
-                   '/usr/local/var/log',
-                   '/usr/local/share/locale',
-                   '/usr/local/share/man',
-                   '/usr/local/share/man/man1',
-                   '/usr/local/share/man/man2',
-                   '/usr/local/share/man/man3',
-                   '/usr/local/share/man/man4',
-                   '/usr/local/share/man/man5',
-                   '/usr/local/share/man/man6',
-                   '/usr/local/share/man/man7',
-                   '/usr/local/share/man/man8',
-                   '/usr/local/share/info',
-                   '/usr/local/share/doc',
-                   '/usr/local/share/aclocal',
-                   '/Library/Caches/Homebrew',
-                   '/Library/Logs/Homebrew',
-                 ]
+    '/usr/local/bin',
+    '/usr/local/etc',
+    '/usr/local/include',
+    '/usr/local/lib',
+    '/usr/local/lib/pkgconfig',
+    '/usr/local/Library',
+    '/usr/local/sbin',
+    '/usr/local/share',
+    '/usr/local/var',
+    '/usr/local/var/log',
+    '/usr/local/share/locale',
+    '/usr/local/share/man',
+    '/usr/local/share/man/man1',
+    '/usr/local/share/man/man2',
+    '/usr/local/share/man/man3',
+    '/usr/local/share/man/man4',
+    '/usr/local/share/man/man5',
+    '/usr/local/share/man/man6',
+    '/usr/local/share/man/man7',
+    '/usr/local/share/man/man8',
+    '/usr/local/share/info',
+    '/usr/local/share/doc',
+    '/usr/local/share/aclocal',
+    '/Library/Caches/Homebrew',
+    '/Library/Logs/Homebrew',
+  ]
 
   group {$group:
     ensure => present,
@@ -153,16 +179,16 @@ class homebrew (
     timeout   => 0,
     notify    => File[$homebrew_directories]
   }
-  if ($has_compiler != 'true' and $xcode_cli_source)
+  if ($::has_compiler != true and $xcode_cli_source)
   {
     Package[$xcode_cli_install] -> Exec['install-homebrew']
   }
 
   file { '/usr/local/bin/brew':
-    owner     => $homebrew::user,
-    group     => $homebrew::group,
-    mode      => '0775',
-    require   => Exec['install-homebrew'],
+    owner   => $homebrew::user,
+    group   => $homebrew::group,
+    mode    => '0775',
+    require => Exec['install-homebrew'],
   }
 
   case $update_every
@@ -198,9 +224,9 @@ class homebrew (
   }
 
   cron {'cron-update-brew':
+    ensure      => $cron_ensure,
     command     => '/usr/local/bin/brew update 2>&1 >> /Library/Logs/Homebrew/cron-update-brew.log',
     environment => ['HOMEBREW_CACHE=/Library/Caches/Homebrew', 'HOMEBREW_LOGS=/Library/Logs/Homebrew/'],
-    ensure      => $cron_ensure,
     user        => root,
     minute      => $cron_minute,
     hour        => $cron_hour,

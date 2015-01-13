@@ -110,6 +110,7 @@ E.g:
 ```json
 {
   "packages": {
+    "homebrew/binaries": { "provider": "tap" },
     "vim": {},
     "macvim": {},
     "tree": {},
@@ -118,8 +119,18 @@ E.g:
 }
 ```
 
-## Contributors
+## Authors/Contributors
+
+[Gildas Cherruel](https://github.com/gildas) [![endorse](https://api.coderwall.com/gildas/endorsecount.png)](https://coderwall.com/gildas)
+
 [John Eckhart](https://github.com/jeckhart)
+
+[Jasper Lievisse Adriaanse](https://github.com/jasperla)
+
+[Dominic Scheirlinck](https://github.com/dominics)
+
+[Martin Skinner](https://github.com/mask)
+
 
 ## License
 

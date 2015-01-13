@@ -16,13 +16,16 @@ Puppet::Type.type(:package).provide(:tap, :parent => Puppet::Provider::Package) 
 
   def self.execute(cmd)
     owner = super([command(:stat), '-nf', '%Uu', command(:brew)]).to_i
-    Puppet.debug "command owner is: #{owner}"
+    environment = TAP_CUSTOM_ENVIRONMENT.merge('HOME' => Etc.getpwuid(owner).dir)
+    Puppet.debug "command owner is: #{owner}, home: #{environment['HOME']}"
     if super([command(:id), '-u']).to_i.zero?
       Puppet.debug "running command in sudo environment as current user is root"
-      super(cmd, :uid => owner, :failonfail => true, :combine => true, :custom_environment => TAP_CUSTOM_ENVIRONMENT)
+      Dir.chdir(environment['HOME']) do
+        super(cmd, :uid => owner, :failonfail => true, :combine => true, :custom_environment => environment)
+      end
     else
       Puppet.debug "running command with current (non-root) user"
-      super(cmd, :failonfail => true, :combine => true, :custom_environment => TAP_CUSTOM_ENVIRONMENT)
+      super(cmd, :failonfail => true, :combine => true, :custom_environment => environment)
     end
   end
 
@@ -48,13 +51,16 @@ Puppet::Type.type(:package).provide(:tap, :parent => Puppet::Provider::Package) 
 
   def query
     Puppet.debug "Querying tap #{@resource[:name]}"
-    if File.directory?("/usr/local/Library/Taps/#{@resource[:name].gsub(/\//, '-')}")
-      Puppet.debug "  #{@resource[:name]} is being tapped"
-      return { :name => @resource[:name], :ensure => 'present', :provider => 'chocolatey' }
-    else
-      Puppet.debug "  #{@resource[:name]} not installed"
-      nil
+    begin
+      output = execute([command(:brew), :tap])
+      output.each_line do |line|
+        line.chomp!
+        return { :name => line, :ensure => 'present', :provider => 'tap' } if line == @resource[:name]
+      end
+    rescue Puppet::ExecutionFailure
+      Puppet.err "Instances failed: #{$!}"
     end
+    nil
   end
 
   def self.instances
